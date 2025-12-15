@@ -1,14 +1,27 @@
+FROM registry.access.redhat.com/ubi9 AS builder
+# Unpack distribution
+
+COPY quarkus/dist/target/keycloak-999.0.0-SNAPSHOT.tar.gz /opt
+RUN tar xfz /opt/keycloak-999.0.0-SNAPSHOT.tar.gz -C /opt && \
+    rm /opt/keycloak-999.0.0-SNAPSHOT.tar.gz && \
+    mv /opt/keycloak-999.0.0-SNAPSHOT /opt/keycloak && \
+    chmod +x /opt/keycloak/bin/*.sh
+
+
 FROM registry.access.redhat.com/ubi9-micro
+
 ENV LANG=en_US.UTF-8
 
 # Flag for determining app is running in container
 ENV KC_RUN_IN_CONTAINER=true
 
-COPY --from=ubi-micro-build /tmp/null/rootfs/ /
-COPY --from=ubi-micro-build --chown=1000:0 /opt/keycloak /opt/keycloak
-
 RUN echo "keycloak:x:0:root" >> /etc/group && \
     echo "keycloak:x:1000:0:keycloak user:/opt/keycloak:/sbin/nologin" >> /etc/passwd
+
+COPY --from=builder /opt/keycloak /opt/keycloak
+
+RUN chown -R 1000:0 /opt/keycloak && \
+    chmod -R g+rwX /opt/keycloak
 
 USER 1000
 
