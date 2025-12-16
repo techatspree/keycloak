@@ -17,14 +17,12 @@
  */
 package org.keycloak.protocol.oidc;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MultivaluedMap;
+import org.keycloak.http.HttpRequest;
 
-import org.keycloak.OAuth2Constants;
 import org.keycloak.common.ClientConnection;
 import org.keycloak.events.EventBuilder;
 import org.keycloak.models.ClientModel;
@@ -37,148 +35,22 @@ import org.keycloak.services.cors.Cors;
  *
  * @author <a href="mailto:markus.dahm@spree.de">Markus Dahm</a>
  */
-public class TokenRefreshContext {
-    private final KeycloakSession session;
-    private final MultivaluedMap<String, String> formParams;
+public record TokenRefreshContext(
+    Object tokenGrantType, // org.keycloak.protocol.oidc.grants.OAuth2GrantTypeBase
+    KeycloakSession session,
+    HttpRequest request,
+    MultivaluedMap<String, String> formParams,
+    Cors cors,
+    RealmModel realm,
 
-    private final Cors cors;
-    private final Object tokenManager; // org.keycloak.protocol.oidc.TokenManager at runtime
+    EventBuilder event,
+    ClientModel client,
+    ClientConnection clientConnection,
+    Object clientConfig, // org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper
+    HttpHeaders headers,
+    Object tokenManager, // org.keycloak.protocol.oidc.TokenManager
 
-    private final ClientModel client;
-    private final RealmModel realm;
-    private final EventBuilder event;
-
-    private final ClientConnection clientConnection;
-    private final HttpHeaders headers;
-    private final Map<String, String> clientAuthAttributes;
-
-    private final Params params = new Params();
-    private Set<String> restrictedScopes;
-
-    // Reason why the particular tokenExchange provider cannot be supported
-    private String unsupportedReason;
-
-    public TokenRefreshContext(KeycloakSession session,
-                               MultivaluedMap<String, String> formParams,
-                               Cors cors,
-                               RealmModel realm,
-                               EventBuilder event,
-                               ClientModel client,
-                               ClientConnection clientConnection,
-                               HttpHeaders headers,
-                               Object tokenManager,
-                               Map<String, String> clientAuthAttributes, final String scopeParameter
-    ) {
-        this.session = session;
-        this.formParams = formParams;
-        this.cors = cors;
-        this.client = client;
-        this.realm = realm;
-        this.event = event;
-        this.clientConnection = clientConnection;
-        this.headers = headers;
-        this.tokenManager = tokenManager;
-        this.clientAuthAttributes = clientAuthAttributes;
-    }
-
-    public KeycloakSession getSession() {
-        return session;
-    }
-
-    public MultivaluedMap<String, String> getFormParams() {
-        return formParams;
-    }
-
-    public Cors getCors() {
-        return cors;
-    }
-
-    public RealmModel getRealm() {
-        return realm;
-    }
-
-    public ClientModel getClient() {
-        return client;
-    }
-
-    public EventBuilder getEvent() {
-        return event;
-    }
-
-    public ClientConnection getClientConnection() {
-        return clientConnection;
-    }
-
-    public HttpHeaders getHeaders() {
-        return headers;
-    }
-
-    public Object getTokenManager() {
-        return tokenManager;
-    }
-
-    public Map<String, String> getClientAuthAttributes() {
-        return clientAuthAttributes;
-    }
-
-    public Params getParams() {
-        return params;
-    }
-
-    public Set<String> getRestrictedScopes() {
-        return restrictedScopes;
-    }
-
-    public void setRestrictedScopes(Set<String> restrictedScopes) {
-        this.restrictedScopes = restrictedScopes;
-    }
-
-    public String getUnsupportedReason() {
-        return unsupportedReason;
-    }
-
-    public void setUnsupportedReason(String unsupportedReason) {
-        this.unsupportedReason = unsupportedReason;
-    }
-
-    public class Params {
-
-        public String getActorToken() {
-            return formParams.getFirst(OAuth2Constants.ACTOR_TOKEN);
-        }
-
-        public String getActorTokenType() {
-            return formParams.getFirst(OAuth2Constants.ACTOR_TOKEN_TYPE);
-        }
-
-        public List<String> getAudience() {
-            return formParams.get(OAuth2Constants.AUDIENCE);
-        }
-
-        public List<String> getResource() {
-            return formParams.get(OAuth2Constants.RESOURCE);
-        }
-
-        public String getRequestedTokenType() {
-            return formParams.getFirst(OAuth2Constants.REQUESTED_TOKEN_TYPE);
-        }
-
-        public String getScope() {
-            return formParams.getFirst(OAuth2Constants.SCOPE);
-        }
-
-        public String getSubjectToken() {
-            return formParams.getFirst(OAuth2Constants.SUBJECT_TOKEN);
-        }
-
-        public String getSubjectTokenType() {
-            return formParams.getFirst(OAuth2Constants.SUBJECT_TOKEN_TYPE);
-        }
-
-        public String getSubjectIssuer() {
-            return formParams.getFirst(OAuth2Constants.SUBJECT_ISSUER);
-        }
-
-    }
-
+    Map<String, String> clientAuthAttributes,
+    String scopeParameter,
+    String refreshToken) {
 }

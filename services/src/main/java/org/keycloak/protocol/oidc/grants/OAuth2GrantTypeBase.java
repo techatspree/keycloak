@@ -177,7 +177,7 @@ public abstract class OAuth2GrantTypeBase implements OAuth2GrantType {
         return cors.add(Response.ok(res).type(MediaType.APPLICATION_JSON_TYPE));
     }
 
-    protected void checkAndBindMtlsHoKToken(TokenManager.AccessTokenResponseBuilder responseBuilder, boolean useRefreshToken) {
+    public void checkAndBindMtlsHoKToken(TokenManager.AccessTokenResponseBuilder responseBuilder, boolean useRefreshToken) {
         // KEYCLOAK-6771 Certificate Bound Token
         // https://tools.ietf.org/html/draft-ietf-oauth-mtls-08#section-3
         if (clientConfig.isUseMtlsHokToken()) {
@@ -197,8 +197,7 @@ public abstract class OAuth2GrantTypeBase implements OAuth2GrantType {
         }
     }
 
-    protected void updateClientSession(AuthenticatedClientSessionModel clientSession) {
-
+    public void updateClientSession(AuthenticatedClientSessionModel clientSession) {
         if(clientSession == null) {
             ServicesLogger.LOGGER.clientSessionNull();
             return;
@@ -221,7 +220,7 @@ public abstract class OAuth2GrantTypeBase implements OAuth2GrantType {
         }
     }
 
-    protected void updateUserSessionFromClientAuth(UserSessionModel userSession) {
+    public void updateUserSessionFromClientAuth(UserSessionModel userSession) {
         for (Map.Entry<String, String> attr : clientAuthAttributes.entrySet()) {
             userSession.setNote(attr.getKey(), attr.getValue());
         }

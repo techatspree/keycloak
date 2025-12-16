@@ -17,37 +17,26 @@
 
 package org.keycloak.protocol.oidc.grants;
 
-import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.core.Response;
 
 import org.keycloak.OAuthErrorException;
 import org.keycloak.events.Details;
-import org.keycloak.events.Errors;
 import org.keycloak.events.EventType;
-import org.keycloak.models.AuthenticatedClientSessionModel;
-import org.keycloak.models.UserSessionModel;
-import org.keycloak.protocol.oidc.TokenManager;
-import org.keycloak.representations.AccessTokenResponse;
+import org.keycloak.protocol.oidc.TokenRefreshContext;
+import org.keycloak.protocol.oidc.TokenRefreshProvider;
 import org.keycloak.services.CorsErrorResponseException;
 import org.keycloak.services.clientpolicy.ClientPolicyException;
 import org.keycloak.services.clientpolicy.context.TokenRefreshClientPolicyContext;
-import org.keycloak.services.clientpolicy.context.TokenRefreshResponseContext;
-import org.keycloak.services.util.MtlsHoKTokenUtil;
-
-import org.jboss.logging.Logger;
 
 import static org.keycloak.OAuth2Constants.REFRESH_TOKEN;
 
 /**
- * OAuth 2.0 Refresh Token Grant
- * <a href="https://datatracker.ietf.org/doc/html/rfc6749#section-6">...</a>
+ * <a href="https://datatracker.ietf.org/doc/html/rfc6749#section-6">OAuth 2.0 Refresh Token Grant</a>
  *
  * @author <a href="mailto:demetrio@carretti.pro">Dmitry Telegin</a> (et al.)
  */
 public class RefreshTokenGrantType extends OAuth2GrantTypeBase {
-
-  private static final Logger logger = Logger.getLogger(RefreshTokenGrantType.class);
-
   @Override
   public Response process(Context context) {
     setContext(context);
@@ -61,10 +50,20 @@ public class RefreshTokenGrantType extends OAuth2GrantTypeBase {
     }
 
     final String scopeParameter = getRequestedScopes();
+    final TokenRefreshContext refreshContext = new TokenRefreshContext(this,
+        session, request, formParams, cors, realm, event, client, clientConnection, clientConfig, headers, tokenManager, clientAuthAttributes,
+        scopeParameter, refreshToken
+    );
+    final TokenRefreshProvider tokenRefreshProvider = session.getKeycloakSessionFactory()
+        .getProviderFactoriesStream(TokenRefreshProvider.class)
+        .sorted((f1, f2) -> f2.order() - f1.order())
+        .map(f -> session.getProvider(TokenRefreshProvider.class, f.getId()))
+        .filter(p -> p.supports(refreshContext))
+        .findFirst()
+        .orElseThrow(() -> new InternalServerErrorException("No token refresh provider available"));
 
     try {
       session.clientPolicy().triggerOnEvent(new TokenRefreshClientPolicyContext(formParams, client));
-      refreshToken = formParams.getFirst(REFRESH_TOKEN);
     } catch (ClientPolicyException cpe) {
       event.detail(Details.REASON, Details.CLIENT_POLICY_ERROR);
       event.detail(Details.CLIENT_POLICY_ERROR, cpe.getError());
@@ -73,46 +72,7 @@ public class RefreshTokenGrantType extends OAuth2GrantTypeBase {
       throw new CorsErrorResponseException(cors, cpe.getError(), cpe.getErrorDetail(), cpe.getErrorStatus());
     }
 
-    AccessTokenResponse res;
-    try {
-      // KEYCLOAK-6771 Certificate Bound Token
-            TokenManager.AccessTokenResponseBuilder responseBuilder = tokenManager.refreshAccessToken(session, session.getContext().getUri(), clientConnection, realm, client, refreshToken, event, headers, request, scopeParameter);
-
-      checkAndBindMtlsHoKToken(responseBuilder, clientConfig.isUseRefreshToken());
-
-      session.clientPolicy().triggerOnEvent(new TokenRefreshResponseContext(formParams, responseBuilder));
-
-      res = responseBuilder.build();
-
-      if (!responseBuilder.isOfflineToken()) {
-        UserSessionModel userSession = session.sessions().getUserSession(realm, res.getSessionState());
-        AuthenticatedClientSessionModel clientSession = userSession.getAuthenticatedClientSessionByClient(client.getId());
-        updateClientSession(clientSession);
-        updateUserSessionFromClientAuth(userSession);
-      }
-    } catch (OAuthErrorException e) {
-      logger.trace(e.getMessage(), e);
-      // KEYCLOAK-6771 Certificate Bound Token
-      if (MtlsHoKTokenUtil.CERT_VERIFY_ERROR_DESC.equals(e.getDescription())) {
-        event.detail(Details.REASON, e.getDescription());
-        event.error(Errors.NOT_ALLOWED);
-        throw new CorsErrorResponseException(cors, e.getError(), e.getDescription(), Response.Status.UNAUTHORIZED);
-      } else {
-        event.detail(Details.REASON, e.getDescription());
-        event.error(Errors.INVALID_TOKEN);
-        throw new CorsErrorResponseException(cors, e.getError(), e.getDescription(), Response.Status.BAD_REQUEST);
-      }
-    } catch (ClientPolicyException cpe) {
-      event.detail(Details.REASON, Details.CLIENT_POLICY_ERROR);
-      event.detail(Details.CLIENT_POLICY_ERROR, cpe.getError());
-      event.detail(Details.CLIENT_POLICY_ERROR_DETAIL, cpe.getErrorDetail());
-      event.error(cpe.getError());
-      throw new CorsErrorResponseException(cors, cpe.getError(), cpe.getErrorDetail(), cpe.getErrorStatus());
-    }
-
-    event.success();
-
-    return cors.add(Response.ok(res, MediaType.APPLICATION_JSON_TYPE));
+    return tokenRefreshProvider.refresh(refreshContext);
   }
 
   @Override

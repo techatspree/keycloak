@@ -41,5 +41,5 @@ public interface TokenRefreshProvider extends Provider {
      * @param context token refresh context
      * @return response with a new token
      */
-    Response exchange(TokenRefreshContext context);
+    Response refresh(TokenRefreshContext context);
 }
