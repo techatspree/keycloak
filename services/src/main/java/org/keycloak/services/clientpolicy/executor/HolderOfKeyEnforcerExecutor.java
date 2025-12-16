@@ -34,7 +34,7 @@ import org.keycloak.services.clientpolicy.ClientPolicyContext;
 import org.keycloak.services.clientpolicy.ClientPolicyException;
 import org.keycloak.services.clientpolicy.context.ClientCRUDContext;
 import org.keycloak.services.clientpolicy.context.LogoutRequestContext;
-import org.keycloak.services.clientpolicy.context.TokenRefreshContext;
+import org.keycloak.services.clientpolicy.context.TokenRefreshClientPolicyContext;
 import org.keycloak.services.clientpolicy.context.TokenRevokeContext;
 import org.keycloak.services.clientpolicy.context.UserInfoRequestContext;
 import org.keycloak.services.util.MtlsHoKTokenUtil;
@@ -97,7 +97,7 @@ public class HolderOfKeyEnforcerExecutor implements ClientPolicyExecutorProvider
                 }
                 break;
             case TOKEN_REFRESH:
-                checkTokenRefresh((TokenRefreshContext) context, request);
+                checkTokenRefresh((TokenRefreshClientPolicyContext) context, request);
                 break;
             case TOKEN_REVOKE:
                 checkTokenRevoke((TokenRevokeContext) context, request);
@@ -170,8 +170,8 @@ public class HolderOfKeyEnforcerExecutor implements ClientPolicyExecutorProvider
         }
     }
 
-    private void checkTokenRefresh(TokenRefreshContext context, HttpRequest request) throws ClientPolicyException {
-        MultivaluedMap<String, String> formParameters = context.getParams();
+    private void checkTokenRefresh(TokenRefreshClientPolicyContext context, HttpRequest request) throws ClientPolicyException {
+        MultivaluedMap<String, String> formParameters = context.params();
         String encodedRefreshToken = formParameters.getFirst(OAuth2Constants.REFRESH_TOKEN);
 
         RefreshToken refreshToken = session.tokens().decode(encodedRefreshToken, RefreshToken.class);

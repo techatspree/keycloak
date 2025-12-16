@@ -36,7 +36,7 @@ import org.keycloak.services.clientpolicy.ClientPolicyContext;
 import org.keycloak.services.clientpolicy.ClientPolicyException;
 import org.keycloak.services.clientpolicy.context.AuthorizationRequestContext;
 import org.keycloak.services.clientpolicy.context.ClientCRUDContext;
-import org.keycloak.services.clientpolicy.context.TokenRefreshContext;
+import org.keycloak.services.clientpolicy.context.TokenRefreshClientPolicyContext;
 import org.keycloak.services.clientpolicy.context.TokenRequestContext;
 import org.keycloak.services.clientpolicy.context.TokenRevokeContext;
 import org.keycloak.services.util.DPoPUtil;
@@ -130,8 +130,8 @@ public class DPoPBindEnforcerExecutor implements ClientPolicyExecutorProvider<DP
                 validateAndBindOnlyRefreshToken(authorizationRequestContext.getClient());
                 break;
             case TOKEN_REFRESH:
-                TokenRefreshContext tokenRefreshContext = (TokenRefreshContext) context;
-                validateAndBindOnlyRefreshToken(tokenRefreshContext.getClient());
+                TokenRefreshClientPolicyContext tokenRefreshClientPolicyContext = (TokenRefreshClientPolicyContext) context;
+                validateAndBindOnlyRefreshToken(tokenRefreshClientPolicyContext.client());
                 break;
             case USERINFO_REQUEST:
             case BACKCHANNEL_TOKEN_REQUEST:

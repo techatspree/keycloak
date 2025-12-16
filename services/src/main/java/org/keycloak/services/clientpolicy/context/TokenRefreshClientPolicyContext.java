@@ -26,26 +26,9 @@ import org.keycloak.services.clientpolicy.ClientPolicyEvent;
 /**
  * @author <a href="mailto:takashi.norimatsu.ws@hitachi.com">Takashi Norimatsu</a>
  */
-public class TokenRefreshContext implements ClientPolicyContext {
-
-    private final MultivaluedMap<String, String> params;
-    private final ClientModel client;
-
-    public TokenRefreshContext(MultivaluedMap<String, String> params, ClientModel client) {
-        this.params = params;
-        this.client = client;
-    }
-
-    @Override
-    public ClientPolicyEvent getEvent() {
-        return ClientPolicyEvent.TOKEN_REFRESH;
-    }
-
-    public MultivaluedMap<String, String> getParams() {
-        return params;
-    }
-
-    public ClientModel getClient() {
-        return client;
-    }
+public record TokenRefreshClientPolicyContext(MultivaluedMap<String, String> params, ClientModel client) implements ClientPolicyContext {
+  @Override
+  public ClientPolicyEvent getEvent() {
+    return ClientPolicyEvent.TOKEN_REFRESH;
+  }
 }
