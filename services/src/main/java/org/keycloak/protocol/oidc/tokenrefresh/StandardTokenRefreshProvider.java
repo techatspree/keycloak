@@ -63,35 +63,38 @@ public class StandardTokenRefreshProvider implements TokenRefreshProvider {
   public Response refresh(final TokenRefreshContext refreshContext) {
     AccessTokenResponse res;
 
+    final var event = refreshContext.getEvent();
+    final var cors = refreshContext.getCors();
+
     try {
-      final var tokenManager = (TokenManager) refreshContext.tokenManager();
-      final var session = refreshContext.session();
+      final var tokenManager = (TokenManager) refreshContext.getTokenManager();
+      final var session = refreshContext.getSession();
 
       // KEYCLOAK-6771 Certificate Bound Token
       TokenManager.AccessTokenResponseBuilder responseBuilder = tokenManager.refreshAccessToken(
           session,
           session.getContext().getUri(),
-          refreshContext.clientConnection(),
-          refreshContext.realm(),
-          refreshContext.client(),
-          refreshContext.refreshToken(),
-          refreshContext.event(),
-          refreshContext.headers(),
-          refreshContext.request(),
-          refreshContext.scopeParameter()
+          refreshContext.getClientConnection(),
+          refreshContext.getRealm(),
+          refreshContext.getClient(),
+          refreshContext.getRefreshToken(),
+          event,
+          refreshContext.getHeaders(),
+          refreshContext.getRequest(),
+          refreshContext.getScopeParameter()
       );
 
-      final var clientConfig = (OIDCAdvancedConfigWrapper) refreshContext.clientConfig();
-      final var tokenGrantType = (OAuth2GrantTypeBase) refreshContext.tokenGrantType();
+      final var clientConfig = (OIDCAdvancedConfigWrapper) refreshContext.getClientConfig();
+      final var tokenGrantType = (OAuth2GrantTypeBase) refreshContext.getTokenGrantType();
       tokenGrantType.checkAndBindMtlsHoKToken(responseBuilder, clientConfig.isUseRefreshToken());
 
-      session.clientPolicy().triggerOnEvent(new TokenRefreshResponseContext(refreshContext.formParams(), responseBuilder));
+      session.clientPolicy().triggerOnEvent(new TokenRefreshResponseContext(refreshContext.getFormParams(), responseBuilder));
 
       res = responseBuilder.build();
 
       if (!responseBuilder.isOfflineToken()) {
-        UserSessionModel userSession = session.sessions().getUserSession(refreshContext.realm(), res.getSessionState());
-        AuthenticatedClientSessionModel clientSession = userSession.getAuthenticatedClientSessionByClient(refreshContext.client().getId());
+        UserSessionModel userSession = session.sessions().getUserSession(refreshContext.getRealm(), res.getSessionState());
+        AuthenticatedClientSessionModel clientSession = userSession.getAuthenticatedClientSessionByClient(refreshContext.getClient().getId());
         tokenGrantType.updateClientSession(clientSession);
         tokenGrantType.updateUserSessionFromClientAuth(userSession);
       }
@@ -100,28 +103,28 @@ public class StandardTokenRefreshProvider implements TokenRefreshProvider {
 
       // KEYCLOAK-6771 Certificate Bound Token
       if (MtlsHoKTokenUtil.CERT_VERIFY_ERROR_DESC.equals(e.getDescription())) {
-        refreshContext.event().detail(Details.REASON, e.getDescription());
-        refreshContext.event().error(Errors.NOT_ALLOWED);
+        event.detail(Details.REASON, e.getDescription());
+        event.error(Errors.NOT_ALLOWED);
 
-        throw new CorsErrorResponseException(refreshContext.cors(), e.getError(), e.getDescription(), Response.Status.UNAUTHORIZED);
+        throw new CorsErrorResponseException(cors, e.getError(), e.getDescription(), Response.Status.UNAUTHORIZED);
       } else {
-        refreshContext.event().detail(Details.REASON, e.getDescription());
-        refreshContext.event().error(Errors.INVALID_TOKEN);
+        event.detail(Details.REASON, e.getDescription());
+        event.error(Errors.INVALID_TOKEN);
 
-        throw new CorsErrorResponseException(refreshContext.cors(), e.getError(), e.getDescription(), Response.Status.BAD_REQUEST);
+        throw new CorsErrorResponseException(cors, e.getError(), e.getDescription(), Response.Status.BAD_REQUEST);
       }
     } catch (ClientPolicyException cpe) {
-      refreshContext.event().detail(Details.REASON, Details.CLIENT_POLICY_ERROR);
-      refreshContext.event().detail(Details.CLIENT_POLICY_ERROR, cpe.getError());
-      refreshContext.event().detail(Details.CLIENT_POLICY_ERROR_DETAIL, cpe.getErrorDetail());
-      refreshContext.event().error(cpe.getError());
+      event.detail(Details.REASON, Details.CLIENT_POLICY_ERROR);
+      event.detail(Details.CLIENT_POLICY_ERROR, cpe.getError());
+      event.detail(Details.CLIENT_POLICY_ERROR_DETAIL, cpe.getErrorDetail());
+      event.error(cpe.getError());
 
-      throw new CorsErrorResponseException(refreshContext.cors(), cpe.getError(), cpe.getErrorDetail(), cpe.getErrorStatus());
+      throw new CorsErrorResponseException(cors, cpe.getError(), cpe.getErrorDetail(), cpe.getErrorStatus());
     }
 
-    refreshContext.event().success();
+    event.success();
 
-    return refreshContext.cors().add(Response.ok(res, MediaType.APPLICATION_JSON_TYPE));
+    return cors.add(Response.ok(res, MediaType.APPLICATION_JSON_TYPE));
   }
 
   @Override

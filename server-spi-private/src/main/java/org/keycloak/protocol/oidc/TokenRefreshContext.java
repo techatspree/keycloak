@@ -1,24 +1,6 @@
-/*
- *  Copyright 2021 Red Hat, Inc. and/or its affiliates
- *  and other contributors as indicated by the @author tags.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- */
 package org.keycloak.protocol.oidc;
 
 import java.util.Map;
-
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MultivaluedMap;
 import org.keycloak.http.HttpRequest;
@@ -35,22 +17,119 @@ import org.keycloak.services.cors.Cors;
  *
  * @author <a href="mailto:markus.dahm@spree.de">Markus Dahm</a>
  */
-public record TokenRefreshContext(
-    Object tokenGrantType, // org.keycloak.protocol.oidc.grants.OAuth2GrantTypeBase
-    KeycloakSession session,
-    HttpRequest request,
-    MultivaluedMap<String, String> formParams,
-    Cors cors,
-    RealmModel realm,
+public class TokenRefreshContext {
+    private final Object tokenGrantType; // org.keycloak.protocol.oidc.grants.OAuth2GrantTypeBase
+    private final KeycloakSession session;
+    private final HttpRequest request;
+    private final MultivaluedMap<String, String> formParams;
+    private final Cors cors;
+    private final RealmModel realm;
 
-    EventBuilder event,
-    ClientModel client,
-    ClientConnection clientConnection,
-    Object clientConfig, // org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper
-    HttpHeaders headers,
-    Object tokenManager, // org.keycloak.protocol.oidc.TokenManager
+    private final EventBuilder event;
+    private final ClientModel client;
+    private final ClientConnection clientConnection;
+    private final Object clientConfig; // org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper
+    private final HttpHeaders headers;
+    private Object tokenManager; // org.keycloak.protocol.oidc.TokenManager
 
-    Map<String, String> clientAuthAttributes,
-    String scopeParameter,
-    String refreshToken) {
+    private final Map<String, String> clientAuthAttributes;
+    private final String scopeParameter;
+    private final String refreshToken;
+
+    public TokenRefreshContext(
+        final Object tokenGrantType,
+        final KeycloakSession session,
+        final HttpRequest request,
+        final MultivaluedMap<String, String> formParams,
+        final Cors cors,
+        final RealmModel realm,
+        final EventBuilder event,
+        final ClientModel client,
+        final ClientConnection clientConnection,
+        final Object clientConfig,
+        final HttpHeaders headers,
+        final Object tokenManager,
+        final Map<String, String> clientAuthAttributes,
+        final String scopeParameter,
+        final String refreshToken) {
+        this.tokenGrantType = tokenGrantType;
+        this.session = session;
+        this.request = request;
+        this.formParams = formParams;
+        this.cors = cors;
+        this.realm = realm;
+        this.event = event;
+        this.client = client;
+        this.clientConnection = clientConnection;
+        this.clientConfig = clientConfig;
+        this.headers = headers;
+        this.tokenManager = tokenManager;
+        this.clientAuthAttributes = clientAuthAttributes;
+        this.scopeParameter = scopeParameter;
+        this.refreshToken = refreshToken;
+    }
+
+  public Object getTokenGrantType() {
+    return tokenGrantType;
+  }
+
+  public KeycloakSession getSession() {
+    return session;
+  }
+
+  public HttpRequest getRequest() {
+    return request;
+  }
+
+  public MultivaluedMap<String, String> getFormParams() {
+    return formParams;
+  }
+
+  public Cors getCors() {
+    return cors;
+  }
+
+  public RealmModel getRealm() {
+    return realm;
+  }
+
+  public EventBuilder getEvent() {
+    return event;
+  }
+
+  public ClientModel getClient() {
+    return client;
+  }
+
+  public ClientConnection getClientConnection() {
+    return clientConnection;
+  }
+
+  public Object getClientConfig() {
+    return clientConfig;
+  }
+
+  public HttpHeaders getHeaders() {
+    return headers;
+  }
+
+  public Object getTokenManager() {
+    return tokenManager;
+  }
+
+  public void setTokenManager(final Object tokenManager) {
+    this.tokenManager = tokenManager;
+  }
+
+  public Map<String, String> getClientAuthAttributes() {
+    return clientAuthAttributes;
+  }
+
+  public String getScopeParameter() {
+    return scopeParameter;
+  }
+
+  public String getRefreshToken() {
+    return refreshToken;
+  }
 }
