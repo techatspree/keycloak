@@ -30,6 +30,7 @@ import org.keycloak.protocol.oidc.OIDCAdvancedConfigWrapper;
 import org.keycloak.protocol.oidc.TokenManager;
 import org.keycloak.protocol.oidc.TokenRefreshContext;
 import org.keycloak.protocol.oidc.TokenRefreshProvider;
+import org.keycloak.protocol.oidc.grants.OAuth2GrantType;
 import org.keycloak.protocol.oidc.grants.OAuth2GrantTypeBase;
 import org.keycloak.protocol.oidc.grants.RefreshTokenGrantType;
 import org.keycloak.representations.AccessTokenResponse;
@@ -53,6 +54,11 @@ public class StandardTokenRefreshProvider implements TokenRefreshProvider {
     return true;
   }
 
+  /**
+   * Code moved from {@link RefreshTokenGrantType#process(OAuth2GrantType.Context)}
+   *
+   * @param refreshContext token refresh context
+   */
   @Override
   public Response refresh(final TokenRefreshContext refreshContext) {
     AccessTokenResponse res;
@@ -91,6 +97,7 @@ public class StandardTokenRefreshProvider implements TokenRefreshProvider {
       }
     } catch (OAuthErrorException e) {
       logger.trace(e.getMessage(), e);
+
       // KEYCLOAK-6771 Certificate Bound Token
       if (MtlsHoKTokenUtil.CERT_VERIFY_ERROR_DESC.equals(e.getDescription())) {
         refreshContext.event().detail(Details.REASON, e.getDescription());
@@ -108,6 +115,7 @@ public class StandardTokenRefreshProvider implements TokenRefreshProvider {
       refreshContext.event().detail(Details.CLIENT_POLICY_ERROR, cpe.getError());
       refreshContext.event().detail(Details.CLIENT_POLICY_ERROR_DETAIL, cpe.getErrorDetail());
       refreshContext.event().error(cpe.getError());
+
       throw new CorsErrorResponseException(refreshContext.cors(), cpe.getError(), cpe.getErrorDetail(), cpe.getErrorStatus());
     }
 

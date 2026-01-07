@@ -35,6 +35,8 @@ import static org.keycloak.OAuth2Constants.REFRESH_TOKEN;
  * <a href="https://datatracker.ietf.org/doc/html/rfc6749#section-6">OAuth 2.0 Refresh Token Grant</a>
  *
  * @author <a href="mailto:demetrio@carretti.pro">Dmitry Telegin</a> (et al.)
+ * <p>
+ * Code partially moved to {@link org.keycloak.protocol.oidc.tokenrefresh.StandardTokenRefreshProvider#refresh(TokenRefreshContext)}
  */
 public class RefreshTokenGrantType extends OAuth2GrantTypeBase {
   @Override
@@ -79,5 +81,4 @@ public class RefreshTokenGrantType extends OAuth2GrantTypeBase {
   public EventType getEventType() {
     return EventType.REFRESH_TOKEN;
   }
-
 }
