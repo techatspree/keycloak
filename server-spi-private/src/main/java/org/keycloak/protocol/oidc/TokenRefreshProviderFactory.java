@@ -20,7 +20,7 @@ package org.keycloak.protocol.oidc;
 import org.keycloak.provider.ProviderFactory;
 
 /**
- * A factory that creates {@link TokenRefreshProvider} instances.
+ * A factory that creates {@link TokenRefreshProvider} instances. Analogous to {@link TokenExchangeProviderFactory}.
  *
  * @author <a href="mailto:markus.dahm@spree.de">Markus Dahm</a>
  */

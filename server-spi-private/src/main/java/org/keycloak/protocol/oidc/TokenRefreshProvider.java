@@ -22,7 +22,7 @@ import jakarta.ws.rs.core.Response;
 import org.keycloak.provider.Provider;
 
 /**
- * Provides token refresh mechanism for supported tokens
+ * Provides token refresh mechanism for supported tokens. Analogous to {@link TokenExchangeProvider}.
  *
  * @author <a href="mailto:markus.dahm@spree.de">Markus Dahm</a>
  */

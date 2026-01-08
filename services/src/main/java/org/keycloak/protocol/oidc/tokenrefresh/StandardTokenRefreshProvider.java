@@ -63,38 +63,38 @@ public class StandardTokenRefreshProvider implements TokenRefreshProvider {
   public Response refresh(final TokenRefreshContext refreshContext) {
     AccessTokenResponse res;
 
-    final var event = refreshContext.getEvent();
-    final var cors = refreshContext.getCors();
+    final var event = refreshContext.event();
+    final var cors = refreshContext.cors();
 
     try {
-      final var tokenManager = (TokenManager) refreshContext.getTokenManager();
-      final var session = refreshContext.getSession();
+      final var tokenManager = (TokenManager) refreshContext.tokenManager();
+      final var session = refreshContext.session();
 
       // KEYCLOAK-6771 Certificate Bound Token
       TokenManager.AccessTokenResponseBuilder responseBuilder = tokenManager.refreshAccessToken(
           session,
           session.getContext().getUri(),
-          refreshContext.getClientConnection(),
-          refreshContext.getRealm(),
-          refreshContext.getClient(),
-          refreshContext.getRefreshToken(),
+          refreshContext.clientConnection(),
+          refreshContext.realm(),
+          refreshContext.client(),
+          refreshContext.refreshToken(),
           event,
-          refreshContext.getHeaders(),
-          refreshContext.getRequest(),
-          refreshContext.getScopeParameter()
+          refreshContext.headers(),
+          refreshContext.request(),
+          refreshContext.scopeParameter()
       );
 
-      final var clientConfig = (OIDCAdvancedConfigWrapper) refreshContext.getClientConfig();
-      final var tokenGrantType = (OAuth2GrantTypeBase) refreshContext.getTokenGrantType();
+      final var clientConfig = (OIDCAdvancedConfigWrapper) refreshContext.clientConfig();
+      final var tokenGrantType = (OAuth2GrantTypeBase) refreshContext.tokenGrantType();
       tokenGrantType.checkAndBindMtlsHoKToken(responseBuilder, clientConfig.isUseRefreshToken());
 
-      session.clientPolicy().triggerOnEvent(new TokenRefreshResponseContext(refreshContext.getFormParams(), responseBuilder));
+      session.clientPolicy().triggerOnEvent(new TokenRefreshResponseContext(refreshContext.formParams(), responseBuilder));
 
       res = responseBuilder.build();
 
       if (!responseBuilder.isOfflineToken()) {
-        UserSessionModel userSession = session.sessions().getUserSession(refreshContext.getRealm(), res.getSessionState());
-        AuthenticatedClientSessionModel clientSession = userSession.getAuthenticatedClientSessionByClient(refreshContext.getClient().getId());
+        UserSessionModel userSession = session.sessions().getUserSession(refreshContext.realm(), res.getSessionState());
+        AuthenticatedClientSessionModel clientSession = userSession.getAuthenticatedClientSessionByClient(refreshContext.client().getId());
         tokenGrantType.updateClientSession(clientSession);
         tokenGrantType.updateUserSessionFromClientAuth(userSession);
       }
