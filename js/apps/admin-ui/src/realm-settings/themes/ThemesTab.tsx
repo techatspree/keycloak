@@ -61,6 +61,7 @@ parent=keycloak.v2
 import=common/quick-theme
 
 ${logo ? "logo=" + logoName : ""}
+${favicon ? "favIcon=/img/favicon.ico" : ""}
 styles=css/theme-styles.css
 `,
     );
@@ -72,6 +73,7 @@ parent=keycloak.v3
 import=common/quick-theme
 
 ${logo ? "logo=" + logoName : ""}
+${favicon ? "favIcon=/img/favicon.ico" : ""}
 styles=css/theme-styles.css
 `,
     );
@@ -150,8 +152,7 @@ styles=css/login.css css/theme-styles.css
   });
 
   const settingsTab = useRoutableTab(toThemesTab(param("settings")));
-  const lightColorsTab = useRoutableTab(toThemesTab(param("lightColors")));
-  const darkColorsTab = useRoutableTab(toThemesTab(param("darkColors")));
+  const quickThemeTab = useRoutableTab(toThemesTab(param("quickTheme")));
 
   if (!isFeatureEnabled(Feature.QuickTheme)) {
     return <ThemeSettingsTab realm={realm} save={save} />;
@@ -175,23 +176,13 @@ styles=css/login.css css/theme-styles.css
         <ThemeSettingsTab realm={realm} save={save} />
       </Tab>
       <Tab
-        id="lightColors"
-        title={<TabTitleText>{t("themeColorsLight")}</TabTitleText>}
-        data-testid="lightColors-tab"
-        {...lightColorsTab}
+        id="quickTheme"
+        title={<TabTitleText>{t("quickTheme")}</TabTitleText>}
+        data-testid="quickTheme-tab"
+        {...quickThemeTab}
       >
         <LogoContext>
-          <ThemeColors realm={realm} save={saveTheme} theme="light" />
-        </LogoContext>
-      </Tab>
-      <Tab
-        id="darkColors"
-        title={<TabTitleText>{t("themeColorsDark")}</TabTitleText>}
-        data-testid="darkColors-tab"
-        {...darkColorsTab}
-      >
-        <LogoContext>
-          <ThemeColors realm={realm} save={saveTheme} theme="dark" />
+          <ThemeColors realm={realm} save={saveTheme} />
         </LogoContext>
       </Tab>
     </RoutableTabs>
