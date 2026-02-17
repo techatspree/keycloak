@@ -112,8 +112,8 @@ import org.jboss.logging.Logger;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 
-import static org.keycloak.OAuth2Constants.OPENID_CREDENTIAL;
 import static org.keycloak.OID4VCConstants.CLAIM_NAME_SUBJECT_ID;
+import static org.keycloak.OID4VCConstants.OPENID_CREDENTIAL;
 import static org.keycloak.testsuite.oid4vc.issuance.signing.OID4VCIssuerEndpointTest.TIME_PROVIDER;
 import static org.keycloak.testsuite.oid4vc.issuance.signing.OID4VCSdJwtIssuingEndpointTest.getCredentialIssuer;
 import static org.keycloak.testsuite.oid4vc.issuance.signing.OID4VCSdJwtIssuingEndpointTest.getJtiGeneratedIdMapper;
@@ -135,7 +135,8 @@ public abstract class OID4VCTest extends AbstractTestRealmKeycloakTest {
 
 	protected static final KeyWrapper RSA_KEY = getRsaKey();
 
-    protected static final String sdJwtTypeNaturalPersonScopeName = "oid4vc_natural_person";
+    protected static final String jwtTypeNaturalPersonScopeName = "oid4vc_natural_person_jwt";
+    protected static final String sdJwtTypeNaturalPersonScopeName = "oid4vc_natural_person_sd";
 
     protected static final String sdJwtTypeCredentialScopeName = "sd-jwt-credential";
 	protected static final String sdJwtTypeCredentialConfigurationIdName = "sd-jwt-credential-config-id";

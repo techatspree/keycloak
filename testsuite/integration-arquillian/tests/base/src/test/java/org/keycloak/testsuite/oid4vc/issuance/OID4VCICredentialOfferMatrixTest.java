@@ -27,7 +27,6 @@ import org.keycloak.OAuth2Constants;
 import org.keycloak.TokenVerifier;
 import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.jose.jws.JWSInput;
-import org.keycloak.protocol.oid4vc.issuance.OID4VCAuthorizationDetailResponse;
 import org.keycloak.protocol.oid4vc.model.CredentialIssuer;
 import org.keycloak.protocol.oid4vc.model.CredentialOfferURI;
 import org.keycloak.protocol.oid4vc.model.CredentialRequest;
@@ -51,11 +50,10 @@ import org.keycloak.util.JsonSerialization;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.directory.api.util.Strings;
-import org.apache.http.HttpStatus;
 import org.junit.Test;
 
-import static org.keycloak.OAuth2Constants.OPENID_CREDENTIAL;
 import static org.keycloak.OAuth2Constants.SCOPE_OPENID;
+import static org.keycloak.OID4VCConstants.OPENID_CREDENTIAL;
 import static org.keycloak.constants.OID4VCIConstants.CREDENTIAL_OFFER_CREATE;
 import static org.keycloak.protocol.oid4vc.model.ErrorType.INVALID_CREDENTIAL_OFFER_REQUEST;
 import static org.keycloak.testsuite.admin.ApiUtil.findUserByUsernameId;
@@ -93,8 +91,8 @@ public class OID4VCICredentialOfferMatrixTest extends OID4VCIssuerEndpointTest {
 
     String appUsername = "alice";
 
-    String credScopeName = jwtTypeCredentialScopeName;
-    String credConfigId = jwtTypeCredentialConfigurationIdName;
+    String credScopeName = jwtTypeNaturalPersonScopeName;
+    String credConfigId = jwtTypeNaturalPersonScopeName;
 
     class TestContext {
         boolean preAuthorized;
@@ -122,7 +120,7 @@ public class OID4VCICredentialOfferMatrixTest extends OID4VCIssuerEndpointTest {
     public void testCredentialWithoutOffer() throws Exception {
         var ctx = new TestContext(false, null, appUsername);
 
-        OID4VCAuthorizationDetailResponse authDetail = new OID4VCAuthorizationDetailResponse();
+        OID4VCAuthorizationDetail authDetail = new OID4VCAuthorizationDetail();
         authDetail.setType(OPENID_CREDENTIAL);
         authDetail.setCredentialConfigurationId(credConfigId);
         authDetail.setLocations(List.of(ctx.issuerMetadata.getCredentialIssuer()));
@@ -138,14 +136,14 @@ public class OID4VCICredentialOfferMatrixTest extends OID4VCIssuerEndpointTest {
 
         // When authorization_details are sent in token request, they are returned in token response with credential_identifiers
         // The credential request MUST use credential_identifier (not credential_configuration_id)
-        List<OID4VCAuthorizationDetailResponse> authDetailsResponse = JsonSerialization.readValue(
+        List<OID4VCAuthorizationDetail> authDetailsResponse = JsonSerialization.readValue(
                 JsonSerialization.writeValueAsString(tokenAuthDetails),
                 new TypeReference<>() {}
         );
         assertNotNull("authorization_details should be present in the response", authDetailsResponse);
         assertFalse("authorization_details should not be empty", authDetailsResponse.isEmpty());
 
-        OID4VCAuthorizationDetailResponse authDetailResponse = authDetailsResponse.get(0);
+        OID4VCAuthorizationDetail authDetailResponse = authDetailsResponse.get(0);
         List<String> credentialIdentifiers = authDetailResponse.getCredentialIdentifiers();
         assertNotNull("credential_identifiers should be present", credentialIdentifiers);
         assertFalse("credential_identifiers should not be empty", credentialIdentifiers.isEmpty());
@@ -272,15 +270,15 @@ public class OID4VCICredentialOfferMatrixTest extends OID4VCIssuerEndpointTest {
                 //  3. does not derive scopes from the client configuration
                 //  4. does not reflect anything from the credential offer
                 //
-                AccessTokenResponse accessToken = getPreAuthorizedAccessTokenResponse(ctx, credOffer);
-                List<OID4VCAuthorizationDetailResponse> authDetailsResponse = accessToken.getOid4vcAuthorizationDetails();
+                AccessTokenResponse accessToken = getPreAuthorizedAccessTokenResponse(credOffer);
+                List<OID4VCAuthorizationDetail> authDetailsResponse = accessToken.getOid4vcAuthorizationDetails();
                 if (authDetailsResponse == null || authDetailsResponse.isEmpty()) {
                     throw new IllegalStateException("No authorization_details in token response");
                 }
                 if (authDetailsResponse.size() > 1) {
                     throw new IllegalStateException("Multiple authorization_details in token response");
                 }
-                OID4VCAuthorizationDetailResponse authDetailResponse = authDetailsResponse.get(0);
+                OID4VCAuthorizationDetail authDetailResponse = authDetailsResponse.get(0);
 
                 // Get the credential and verify
                 //
@@ -340,9 +338,9 @@ public class OID4VCICredentialOfferMatrixTest extends OID4VCIssuerEndpointTest {
         }
     }
 
-    private List<OID4VCAuthorizationDetailResponse> extractAuthorizationDetails(AccessTokenResponse tokenResponse) {
+    private List<OID4VCAuthorizationDetail> extractAuthorizationDetails(AccessTokenResponse tokenResponse) {
         // First check if already populated in token response
-        List<OID4VCAuthorizationDetailResponse> authDetailsResponse = tokenResponse.getOid4vcAuthorizationDetails();
+        List<OID4VCAuthorizationDetail> authDetailsResponse = tokenResponse.getOid4vcAuthorizationDetails();
         if (authDetailsResponse != null && !authDetailsResponse.isEmpty()) {
             return authDetailsResponse;
         }
@@ -407,22 +405,12 @@ public class OID4VCICredentialOfferMatrixTest extends OID4VCIssuerEndpointTest {
         return credOffer;
     }
 
-    private AccessTokenResponse getPreAuthorizedAccessTokenResponse(TestContext ctx, CredentialsOffer credOffer) throws Exception {
+    private AccessTokenResponse getPreAuthorizedAccessTokenResponse(CredentialsOffer credOffer) throws Exception {
         PreAuthorizedCode preAuthorizedCode = credOffer.getGrants().getPreAuthorizedCode();
-        AccessTokenResponse accessTokenResponse = oauth.oid4vc()
-                .preAuthorizedCodeGrantRequest(preAuthorizedCode.getPreAuthorizedCode())
-                .endpoint(ctx.authorizationMetadata.getTokenEndpoint())
-                .send();
-        int statusCode = accessTokenResponse.getStatusCode();
-        if (HttpStatus.SC_OK != statusCode) {
-            throw new IllegalStateException(accessTokenResponse.getErrorDescription() != null
-                    ? accessTokenResponse.getErrorDescription()
-                    : "Request failed with status " + statusCode);
-        }
-        return accessTokenResponse;
+        return oauth.oid4vc().doPreAuthorizedCodeGrantRequest(preAuthorizedCode.getPreAuthorizedCode());
     }
 
-    private CredentialResponse getCredentialByAuthDetail(String accessToken, OID4VCAuthorizationDetailResponse authDetail) throws Exception {
+    private CredentialResponse getCredentialByAuthDetail(String accessToken, OID4VCAuthorizationDetail authDetail) throws Exception {
         var credentialRequest = new CredentialRequest();
         if (authDetail.getCredentialIdentifiers() != null) {
             credentialRequest.setCredentialIdentifier(authDetail.getCredentialIdentifiers().get(0));
@@ -439,7 +427,7 @@ public class OID4VCICredentialOfferMatrixTest extends OID4VCIssuerEndpointTest {
         var credentialRequest = new CredentialRequest();
 
         // Extract authorization_details (from token response or JWT)
-        List<OID4VCAuthorizationDetailResponse> authDetailsResponse = extractAuthorizationDetails(tokenResponse);
+        List<OID4VCAuthorizationDetail> authDetailsResponse = extractAuthorizationDetails(tokenResponse);
 
         if (authDetailsResponse != null && !authDetailsResponse.isEmpty()) {
             // If authorization_details are present, credential_identifier is required
@@ -473,6 +461,7 @@ public class OID4VCICredentialOfferMatrixTest extends OID4VCIssuerEndpointTest {
 
     private void verifyCredentialResponse(TestContext ctx, CredentialResponse credResponse) throws Exception {
 
+        String issuer = ctx.issuerMetadata.getCredentialIssuer();
         String scope = ctx.credentialConfiguration.getScope();
         CredentialResponse.Credential credentialObj = credResponse.getCredentials().get(0);
         assertNotNull("The first credential in the array should not be null", credentialObj);
@@ -480,11 +469,11 @@ public class OID4VCICredentialOfferMatrixTest extends OID4VCIssuerEndpointTest {
         String expUsername = ctx.appUser != null ? ctx.appUser : appUsername;
 
         JsonWebToken jsonWebToken = TokenVerifier.create((String) credentialObj.getCredential(), JsonWebToken.class).getToken();
-        assertEquals("did:web:test.org", jsonWebToken.getIssuer());
+        assertEquals(issuer, jsonWebToken.getIssuer());
         Object vc = jsonWebToken.getOtherClaims().get("vc");
         VerifiableCredential credential = JsonSerialization.mapper.convertValue(vc, VerifiableCredential.class);
         assertEquals(List.of(scope), credential.getType());
-        assertEquals(URI.create("did:web:test.org"), credential.getIssuer());
+        assertEquals(URI.create(issuer), credential.getIssuer());
         assertEquals(expUsername + "@email.cz", credential.getCredentialSubject().getClaims().get("email"));
     }
 
