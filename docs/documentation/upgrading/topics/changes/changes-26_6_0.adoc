@@ -38,6 +38,13 @@ When running the server in dev mode on a platform other than Windows Subsystem F
 This ensures your dev instance won't be accessible from
 other machines. If you want the previous behavior of binding to all interfaces, then explicitly set `http-host` to `0.0.0.0`.
 
+=== Graceful shutdown of HTTP stack
+
+Starting with this version, {project_name} will apply a shutdown delay and a shutdown timeout of one second each to allow a graceful termination.
+
+Users should adjust those values depending on their proxy setup.
+See the section https://www.keycloak.org/server/reverseproxy#graceful-http-shutdown[Graceful HTTP shutdown] in the reverse proxy guide for more information.
+
 === `X-Forwarded-Prefix` Header is now supported
 
 With `proxy-headers` set to `xforwarded`, the server can determine the proxy context path from the `X-Forwarded-Prefix` header.
@@ -58,6 +65,22 @@ registration request. Now the specified method is respected, so for example when
 it is required to authenticate the client really with the client secret sent as a parameter in the POST request body.
 
 It is still possible to make the OIDC client allow both methods and clients migrated from previous versions are set by default to allow authentication with both methods.
+
+=== Zero-downtime patch releases enabled by default
+
+Zero-downtime patch releases are now enabled by default. This feature, previously in preview as `rolling-updates:v2`, allows you to perform rolling updates when upgrading to a newer patch version within the same `major.minor` release stream without service downtime.
+
+The `rolling-updates:v2` feature flag is no longer required.
+
+When using the {project_name} Operator, set the update strategy to `Auto` to benefit from this functionality.
+
+For more details on the Operator configuration, see the https://www.keycloak.org/operator/rolling-updates[Avoiding downtime with rolling updates] guide.
+
+=== Infinispan 16 upgrade
+
+{project_name} now uses Infinispan 16.0 for embedded distributed caching. This upgrade brings improved performance, enhanced security, and better support for zero-downtime upgrade in patch releases.
+
+If you are using an external {jdgserver_name} server for example in a multi-cluster setup, you should upgrade to version 16.0 as this is the version {project_name} was tested with.
 
 === Usage of virtual threads for embedded caches
 
@@ -111,12 +134,6 @@ Custom providers should implement these new methods to avoid performance penalti
 They should avoid keeping the returned items in memory by for example binding them to the current transaction, in case the invoker needs to analyze all data.
 
 A similar change was done for the `UserSessionPersisterProvider`.
-
-== More changes for the `server-info` system information
-
-In version 26.4.0, the `server-info` endpoint changed to just return the system information for administrators in the admin realm. Nevertheless, the version property was detected to be needed by some products that interact with {project_name}. Now that property is included for administrators in the realm with permission `manage-realm`.
-
-The workaround of the `view-system` permission is more restricted too. It can only be assigned by administrators in the master realm using link:{adminguide_link}#_fine_grained_permissions[FGAP]. This permission will be deleted in a future version.
 
 // ------------------------ Deprecated features ------------------------ //
 == Deprecated features
