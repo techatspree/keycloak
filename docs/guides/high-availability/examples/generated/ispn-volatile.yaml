@@ -36,6 +36,7 @@ data:
         metrics:
           namesAsTags: true
           histograms: false
+          legacy: true
         tracing:
           enabled: true
           collector-endpoint: "http://tempo-tempo.monitoring.svc:4318"
@@ -252,6 +253,7 @@ spec:
         enabled: true
         indexed-entities:
         - keycloak.RootAuthenticationSessionEntity
+        startupMode: NONE
       backups:
         site-b: # <3>
           backup:
@@ -291,6 +293,7 @@ spec:
         enabled: true
         indexed-entities:
         - keycloak.RemoteAuthenticatedClientSessionEntity
+        startupMode: NONE
       backups:
         site-b: # <3>
           backup:
@@ -330,6 +333,7 @@ spec:
         enabled: true
         indexed-entities:
         - keycloak.LoginFailureEntity
+        startupMode: NONE
       backups:
         site-b: # <3>
           backup:
@@ -369,6 +373,7 @@ spec:
         enabled: true
         indexed-entities:
         - keycloak.RemoteAuthenticatedClientSessionEntity
+        startupMode: NONE
       backups:
         site-b: # <3>
           backup:
@@ -408,6 +413,7 @@ spec:
         enabled: true
         indexed-entities:
         - keycloak.RemoteUserSessionEntity
+        startupMode: NONE
       backups:
         site-b: # <3>
           backup:
@@ -447,6 +453,7 @@ spec:
         enabled: true
         indexed-entities:
         - keycloak.RemoteUserSessionEntity
+        startupMode: NONE
       backups:
         site-b: # <3>
           backup:
@@ -514,7 +521,7 @@ spec:
     type: Route
   configMapName: "cluster-config"
   image: 
-  version: 16.0.5
+  version: 16.0.8
   configListener:
     enabled: false
   container:

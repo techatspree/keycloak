@@ -16,7 +16,9 @@
  */
 package org.keycloak.quarkus.runtime.configuration;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -26,6 +28,7 @@ import java.util.stream.StreamSupport;
 import jakarta.annotation.Priority;
 
 import org.keycloak.config.OptionCategory;
+import org.keycloak.quarkus.runtime.Environment;
 import org.keycloak.quarkus.runtime.configuration.mappers.PropertyMapper;
 import org.keycloak.quarkus.runtime.configuration.mappers.PropertyMappers;
 import org.keycloak.quarkus.runtime.configuration.mappers.WildcardPropertyMapper;
@@ -95,7 +98,7 @@ public class PropertyMappingInterceptor implements ConfigSourceInterceptor {
         // come from kc.log - but via a map from, not to.
         // so we'd need additional logic like the getWildcardMappedFrom case for that
 
-        boolean filterRuntime = isRebuild();
+        boolean filterRuntime = isRebuild() || Boolean.getBoolean(Environment.KC_TEST_REBUILD);
 
         var baseStream = StreamSupport.stream(iterable.spliterator(), false).flatMap(name -> {
             final PropertyMapper<?> mapper = PropertyMappers.getMapper(name);
@@ -116,41 +119,70 @@ public class PropertyMappingInterceptor implements ConfigSourceInterceptor {
 
             allMappers.remove(mapper);
 
+            List<String> wildcardsMappedFrom = getWildcardsMappedFrom(context, name, mapper);
+
             if (mapper.hasWildcard()) {
-                // non-wildcard connected options should be already advertised by the logic in iterateNames()
+                var wildcardMapper = (WildcardPropertyMapper<?>) mapper;
+
+                var wildcardValue = wildcardMapper.extractWildcardValue(name).orElseThrow();
+
                 if (mapper.hasConnectedOptions()) {
-                    var wildcardMapper = (WildcardPropertyMapper<?>) mapper;
-                    var wildcardValue = wildcardMapper.extractWildcardValue(name).orElseThrow();
                     var connectedTo = wildcardMapper.getConnectedOptions(wildcardValue).stream()
                             .map(option -> Optional.ofNullable(PropertyMappers.getMapper(NS_KEYCLOAK_PREFIX + option)).orElseThrow(() -> new IllegalArgumentException("Cannot find connected options")))
-                            .map(m -> m.hasWildcard() ? ((WildcardPropertyMapper<?>) m).getTo(wildcardValue) : m.getTo());
-
-                    return Stream.concat(toDistinctStream(name, wildcardMapper.getTo(wildcardValue)), connectedTo);
-                }
-            } else {
-                // this is not a wildcard value, but may map to wildcards
-                // the current example is something like log-level=wildcardCat1:level,wildcardCat2:level
-                var wildCard = PropertyMappers.getWildcardMappedFrom(mapper.getOption());
-                if (wildCard != null) {
-                    ConfigValue value = context.proceed(name);
-                    if (value != null && value.getValue() != null) {
-                        return Stream.concat(Stream.of(name), wildCard.getToFromWildcardTransformer(value.getValue()));
-                    }
+                            .map(m -> m.hasWildcard() ? ((WildcardPropertyMapper<?>) m).getTo(wildcardValue) : m.getTo())
+                            .filter(key -> hasValue(key, context));
+                    String to = wildcardMapper.getTo(wildcardValue);
+                    return Stream.concat(toDistinctStream(name, !Configuration.isInitialized() || hasValue(to, context) ? to : null), Stream.concat(connectedTo, wildcardsMappedFrom.stream()));
                 }
             }
 
-            // there is a corner case here: -1 for the reload period has no 'to' value.
-            // if that becomes an issue we could use more metadata to perform a full mapping
-            return toDistinctStream(name, mappedMapper.getTo());
+            return Stream.concat(toDistinctStream(name,
+                    !Configuration.isInitialized() || hasValue(mappedMapper.getTo(), context) ? mappedMapper.getTo() : null),
+                    wildcardsMappedFrom.stream());
         });
 
-        // include anything remaining that has a default value
-        var defaultStream = allMappers.stream()
-                .filter(m -> m.getDefaultValue().isPresent() && !m.hasWildcard()
-                        && m.getCategory() != OptionCategory.CONFIG) // advertising the keystore type causes the keystore to be used early
-                .flatMap(m -> toDistinctStream(m.getTo()));
+        // include anything remaining that has a value - we only care about the to (typically quarkus) values
+        var inferredValueStream = allMappers.stream()
+                .filter(m -> m.getCategory() != OptionCategory.CONFIG // advertising the keystore type causes the keystore to be used early
+                        && !m.hasWildcard()
+                        && hasValue(m.getTo(), context))
+                .map(m -> m.getTo());
 
-        return IteratorUtils.chainedIterator(baseStream.iterator(), defaultStream.iterator());
+        return IteratorUtils.chainedIterator(baseStream.iterator(), inferredValueStream.iterator());
+    }
+
+    private List<String> getWildcardsMappedFrom(ConfigSourceInterceptorContext context, String name,
+            final PropertyMapper<?> mapper) {
+        var wildCards = PropertyMappers.getWildcardsMappedFrom(mapper.getOption());
+        if (wildCards.isEmpty()) {
+            return List.of();
+        }
+        List<String> mappedFromWildCardKeys = new ArrayList<>();
+        ConfigValue value = context.proceed(name);
+        if (value != null && value.getValue() != null) {
+            for (WildcardPropertyMapper<?> wildCard : wildCards) {
+                if (mapper.hasWildcard()) {
+                    var wildcardMapper = (WildcardPropertyMapper<?>) mapper;
+                    var wildcardValue = wildcardMapper.extractWildcardValue(name).orElseThrow();
+                    // TODO could check recursively backwards
+                    mappedFromWildCardKeys.add(wildCard.getTo(wildcardValue));
+                } else {
+                    // this is not a wildcard value, but may map to wildcards
+                    // the current example is something like log-level=wildcardCat1:level,wildcardCat2:level
+                    wildCard.getToFromWildcardTransformer(value.getValue()).forEach(mappedFromWildCardKeys::add);
+                }
+            }
+        }
+        return mappedFromWildCardKeys;
+    }
+
+    private boolean hasValue(String key, ConfigSourceInterceptorContext context) {
+        try {
+            return Configuration.isInitialized()
+                    && Optional.ofNullable(context.restart(key)).map(ConfigValue::getValue).isPresent();
+        } catch (Exception e) {
+            return false; // corner case - validation or other failure, we won't report it as having a value
+        }
     }
 
     private static Stream<String> toDistinctStream(String... values) {

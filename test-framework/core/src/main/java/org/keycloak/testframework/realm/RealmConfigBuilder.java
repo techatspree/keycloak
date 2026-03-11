@@ -18,6 +18,7 @@ import org.keycloak.representations.idm.RequiredActionProviderRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.RolesRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.testframework.util.Collections;
 
 public class RealmConfigBuilder {
 
@@ -228,6 +229,46 @@ public class RealmConfigBuilder {
         return this;
     }
 
+    public RealmConfigBuilder revokeRefreshToken(boolean enabled) {
+        rep.setRevokeRefreshToken(enabled);
+        return this;
+    }
+
+    public RealmConfigBuilder refreshTokenMaxReuse(Integer refreshTokenMaxReuse) {
+        rep.setRefreshTokenMaxReuse(refreshTokenMaxReuse);
+        return this;
+    }
+
+    public RealmConfigBuilder ssoSessionIdleTimeout(Integer ssoSessionIdleTimeout) {
+        rep.setSsoSessionIdleTimeout(ssoSessionIdleTimeout);
+        return this;
+    }
+
+    public RealmConfigBuilder ssoSessionIdleTimeoutRememberMe(Integer ssoSessionIdleTimeoutRememberMe) {
+        rep.setSsoSessionIdleTimeoutRememberMe(ssoSessionIdleTimeoutRememberMe);
+        return this;
+    }
+
+    public RealmConfigBuilder ssoSessionMaxLifespan(Integer ssoSessionMaxLifespan) {
+        rep.setSsoSessionMaxLifespan(ssoSessionMaxLifespan);
+        return this;
+    }
+
+    public RealmConfigBuilder ssoSessionMaxLifespanRememberMe(Integer ssoSessionMaxLifespanRememberMe) {
+        rep.setSsoSessionMaxLifespanRememberMe(ssoSessionMaxLifespanRememberMe);
+        return this;
+    }
+
+    public RealmConfigBuilder clientSessionMaxLifespan(Integer clientSessionMaxLifespan) {
+        rep.setClientSessionMaxLifespan(clientSessionMaxLifespan);
+        return this;
+    }
+
+    public RealmConfigBuilder clientSessionIdleTimeout(Integer clientSessionIdleTimeout) {
+        rep.setClientSessionIdleTimeout(clientSessionIdleTimeout);
+        return this;
+    }
+
     public RealmConfigBuilder bruteForceProtected(boolean enabled) {
         rep.setBruteForceProtected(enabled);
         return this;
@@ -263,6 +304,11 @@ public class RealmConfigBuilder {
         return this;
     }
 
+    public RealmConfigBuilder resetClientPolicies() {
+        rep.setParsedClientPolicies(null);
+        return this;
+    }
+
     public RealmConfigBuilder clientPolicy(ClientPolicyRepresentation clienPolicyRep) {
         ClientPoliciesRepresentation clientPolicies = rep.getParsedClientPolicies();
         if (clientPolicies == null) {
@@ -271,6 +317,11 @@ public class RealmConfigBuilder {
         List<ClientPolicyRepresentation> policies = clientPolicies.getPolicies();
         policies.add(clienPolicyRep);
         rep.setParsedClientPolicies(clientPolicies);
+        return this;
+    }
+
+    public RealmConfigBuilder resetClientProfiles() {
+        rep.setParsedClientProfiles(null);
         return this;
     }
 
@@ -382,6 +433,11 @@ public class RealmConfigBuilder {
 
     public RealmConfigBuilder webAuthnPolicyAcceptableAaguids(List<String> aaguids) {
         rep.setWebAuthnPolicyAcceptableAaguids(aaguids);
+        return this;
+    }
+
+    public RealmConfigBuilder scimEnabled(boolean enabled) {
+        rep.setScimApiEnabled(enabled);
         return this;
     }
 
